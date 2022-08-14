@@ -3,7 +3,7 @@
         style="background-color: rgb(238, 241, 246);"
     >
         <div class="container app-header">
-            <el-link href="./">
+            <el-link href="https://dns.northstar.cool/zone/">
                 域名列表
             </el-link>
             <div class="header-right">
