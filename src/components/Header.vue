@@ -3,7 +3,7 @@
         style="background-color: rgb(238, 241, 246);"
     >
         <div class="container app-header">
-            <el-link href="https://github.com/Indexyz/Dnsflare">
+            <el-link href="./">
                 Dnsflare
             </el-link>
             <div class="header-right">
