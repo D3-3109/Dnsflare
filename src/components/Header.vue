@@ -3,7 +3,7 @@
         style="background-color: rgb(238, 241, 246);"
     >
         <div class="container app-header">
-            <el-link href="./zone">
+            <el-link href="./">
                 域名列表
             </el-link>
             <div class="header-right">
