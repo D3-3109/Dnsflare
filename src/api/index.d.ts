@@ -155,7 +155,6 @@ type PageSettings = {
     page: number
 }
 
-
 type DnsRecordType = 'A' | 'AAAA' | 'CNAME' | 'TXT' | 'SRV' | 'LOC' | 'MX'
 | 'NS' | 'SPF' | 'CERT' | 'DNSKEY' | 'DS' | 'NAPTR' | 'SMIMEA' | 'SSHFP'
 | 'TLSA' | 'URI' | DnsRecordTypeEnum
@@ -202,6 +201,6 @@ type CloudflareDnsRecord = {
     meta: {
         // Will exist if Cloudflare automatically added this DNS record during initial setup.
         autoAdded: boolean
-        [key: string]: string
+        [key: string]: string | boolean
     }
 }

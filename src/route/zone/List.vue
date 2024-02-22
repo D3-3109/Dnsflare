@@ -11,12 +11,15 @@
 
         <br>
         <el-card>
-            <div slot="header">
-                <span>Zone 列表</span>
-            </div>
-            <el-table
+            <template #header>
+                <div class="card-header">
+                    <span>Zone 列表</span>
+                    <el-input @input="updateFilter" v-model="filterList" placeholder="输入过滤" />
+                </div>
+            </template>
+            <el-table    
                 v-loading="isLoading"
-                :data="datas"
+                :data="filterTableData"
             >
                 <el-table-column
                     prop="name"
@@ -29,20 +32,19 @@
                 <el-table-column
                     label="接入商"
                 >
-                    <template slot-scope="data">
-                        {{ (data.row.host || {name: 'Cloudflare'}).name }}
+                    <template #default="scope">
+                        {{ (scope.row.host || {name: 'Cloudflare'}).name }}
                     </template>
                 </el-table-column>
                 <el-table-column
                     fixed="right"
                     label="操作"
-                    width="50"
+                    width="100"
                 >
-                    <template slot-scope="scope">
+                    <template #default="scope">
                         <el-button
-                            type="text"
                             size="small"
-                            @click.native.prevent="listZoneRecord(scope.row)"
+                            @click.prevent="listZoneRecord(scope.row)"
                         >
                             编辑
                         </el-button>
@@ -51,8 +53,9 @@
             </el-table>
             <br>
             <el-pagination
+                v-if="!isFullyLoaded"
                 :page-size="pageInfo.size"
-                :current-page.sync="pageInfo.page"
+                :current-page="pageInfo.page"
                 layout="prev, pager, next, sizes"
                 :total="pageInfo.total"
                 style="text-align: center;"
@@ -63,66 +66,97 @@
     </div>
 </template>
 
+<style scoped>
+    .card-header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+    }
 
-<script lang="ts">
-import { Vue, Component } from 'vue-property-decorator'
-import { listUserZones } from '../../api/zone'
-import { PaginationDetails, convertPagination } from '../../utils/pagination'
+    .card-header > span {
+        margin: auto 0;
+    }
+</style>
+
+<script lang="ts" setup>
+import { Ref, ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { listUserZones, listUserZonesAll } from '../../api/zone'
+import { PaginationDetails, convertPagination, fullLoadPages } from '../../utils/pagination'
 import { CloudflareZoneRecord, PageSettings } from '@/api'
 
-@Component({})
-export default class ZoneListRoute extends Vue {
-    private isLoading = true
-
-    private datas: CloudflareZoneRecord[] = []
-    private pageInfo: PaginationDetails = {
-        page: 1,
-        size: 10,
-        total: 0,
-    };
-
-    async mounted() {
-        await this.loadPage({
-            perPage: 10,
-            page: 0,
-        })
+const filterList: Ref<string> = ref("")
+const isLoading: Ref<boolean> = ref(true)
+const datas: Ref<CloudflareZoneRecord[]> = ref([])
+const pageInfo: Ref<PaginationDetails> = ref({
+    page: 1,
+    size: 10,
+    total: 0,
+})
+const router = useRouter()
+const isFullyLoaded: Ref<boolean> = ref(false)
+const filterTableData = computed(() => {
+    if (filterList.value.length === 0) {
+        return datas.value
     }
 
-    async loadPage(page?: PageSettings) {
-        this.isLoading = true
-        const zones = await listUserZones(page)
+    return datas.value.filter(it => it.name.includes(filterList.value))
+})
 
-        this.isLoading = false
+async function loadPage(page?: PageSettings) {
+    isLoading.value = true
+    const zones = await listUserZones(page)
 
-        if (zones.result) {
-            this.datas = zones.result
-            if (zones.resultInfo) {
-                this.pageInfo = convertPagination(zones.resultInfo)
-            }
+    isLoading.value = false
+
+    if (zones.result) {
+        datas.value = zones.result
+        if (zones.resultInfo) {
+            pageInfo.value = convertPagination(zones.resultInfo)
         }
     }
+}
 
-    changePage(pageNumber: number) {
-        this.loadPage({
-            perPage: this.pageInfo.size,
-            page: pageNumber,
-        })
-    }
+function changePage(pageNumber: number) {
+    return loadPage({
+        perPage: pageInfo.value.size,
+        page: pageNumber,
+    })
+}
 
-    changeSize(pageSize: number) {
-        this.loadPage({
-            perPage: pageSize,
-            page: this.pageInfo.page,
-        })
-    }
+function changeSize(pageSize: number) {
+    return loadPage({
+        perPage: pageSize,
+        page: pageInfo.value.page,
+    })
+}
 
-    listZoneRecord(data: CloudflareZoneRecord) {
-        this.$router.push({
-            name: 'ZoneRecordList',
-            params: {
-                id: data.id,
-            },
-        })
+function listZoneRecord(data: CloudflareZoneRecord) {
+    router.push({
+        name: 'ZoneRecordList',
+        params: {
+            id: data.id,
+        },
+    })
+}
+
+async function updateFilter() {
+    if (!isFullyLoaded.value) {
+        if (isLoading.value) {
+            return
+        }
+
+        isLoading.value = true
+        const pages = await fullLoadPages(listUserZonesAll)
+        pageInfo.value = pages.pageDetail
+        datas.value = pages.data
+
+        isFullyLoaded.value = true
+        isLoading.value = false
     }
 }
+
+await loadPage({
+    perPage: 10,
+    page: 0,
+})
 </script>
